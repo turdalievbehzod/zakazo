@@ -32,8 +32,18 @@ menu_products = """
     CREATE TABLE IF NOT EXISTS menu_products
     (
         id BIGSERIAL PRIMARY KEY,
-        date_of_menu 
-        product_id BIGINT REFERENCES products(id) ON DELETE CASCADE
+        date_of_menu DATE DEFAULT CURRENT_DATE
+        product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
+        amount BIGINT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+"""
+
+durations = """
+    CREATE TABLE IF NOT EXISTS durations
+    (
+        id BIGSERIAL PRIMARY_KEY,
+        from_time 
+        to_time
     )
 """
