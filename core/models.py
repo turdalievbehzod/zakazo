@@ -47,3 +47,28 @@ durations = """
         to_time
     )
 """
+
+_current_user = None
+
+
+def set_current_user(user: dict) -> dict | None:
+    """
+    Save logged in user
+    """
+    global _current_user
+    _current_user = user
+
+
+def get_current_user() -> dict | None:
+    """
+    Get current logged in user
+    """
+    return _current_user
+
+
+def logout() -> None:
+    """
+    Logout current user
+    """
+    global _current_user
+    _current_user = None
