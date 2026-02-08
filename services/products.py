@@ -1,12 +1,23 @@
-from core.db_settings import execute_query
+import logging
 from psycopg2.extras import DictRow
+from core.db_settings import execute_query
 from typing import Any
+logger = logging.getLogger(__name__)
 
 
+def show_all_products() -> list[DictRow] | None:
+    logger.info("Fetching all products")
 
+    products = execute_query(
+        "SELECT * FROM products ORDER BY id",
+        fetch="all"
+    )
 
-def show_all_products() -> DictRow | None | list[tuple[Any, ...]] | bool:
-    execute_query("SELECT * FROM products ORDER BY id", fetch="all")
+    if not products:
+        logger.warning("No products found")
+
+    return products
+
 
 def add_product():
     title = input("Title: ")

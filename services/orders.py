@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from core.db_settings import execute_query
 from auth.login import get_active_user
+from psycopg2.extras import DictRow
 
 logger = logging.getLogger(__name__)
 
@@ -154,22 +155,26 @@ def make_order() -> None:
 
     logger.warning("Invalid order type selected")
 
-def show_my_orders() -> None:
+
+def show_my_orders() -> list[DictRow] | None:
     user = get_active_user()
     if not user:
-        logger.warning("Attempt to view orders without login")
-        return
+        return None
 
-    orders = execute_query(
+    return execute_query(
         """
-        SELECT o.id,
-               o.amount,
-               o.status,
-               o.order_type,
-               o.created_at,
-               d.from_time,
-               d.to_time
+        SELECT 
+            o.id,
+            p.title,
+            o.amount,
+            o.status,
+            o.order_type,
+            o.created_at,
+            d.from_time,
+            d.to_time
         FROM orders o
+        JOIN menu_products mp ON mp.id = o.menu_product_id
+        JOIN products p ON p.id = mp.product_id
         LEFT JOIN durations d ON d.id = o.duration_id
         WHERE o.user_id = %s
         ORDER BY o.created_at DESC
@@ -178,12 +183,9 @@ def show_my_orders() -> None:
         fetch="all"
     )
 
-    logger.info("Fetched user orders")
-    print(orders)
-
 def show_all_orders() -> None:
     orders = execute_query(
-        """
+        """ 
         SELECT o.id,
                u.username,
                o.amount,
