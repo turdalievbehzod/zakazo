@@ -1,24 +1,29 @@
-"""
-    Tables:
-    users: id, username, password, is_login, created_at
-    products: id, title, price, description, created_at
-    menu_products: id, date_of_menu, product_id, amount, created_at
-    durations: id, from_time, to_time, seats, created_at
-    orders: id, user_id, menu_product_id, amount, duration_id, status, order_type, created_at
 
 """
+Tables:
+users: id, username, password, is_login, created_at, role
+products: id, title, price, description, created_at
+menu_products: id, date_of_menu, product_id, amount, created_at
+durations: id, from_time, to_time, seats, created_at
+orders: id, user_id, menu_product_id, amount, duration_id, status, order_type, created_at
+"""
+
+
 users = """
-    CREATE TABLE IF NOT EXISTS users
+CREATE TABLE IF NOT EXISTS users 
     (
         id BIGSERIAL PRIMARY KEY,
-        username VARCHAR(255) NOT NULL,
+        username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        is_login BOOLEAN DEFAULT SET NULL,
+        role VARCHAR(20) DEFAULT 'user',
+        is_login BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 """
+
+
 products = """
-    CREATE TABLE IF NOT EXISTS products
+CREATE TABLE IF NOT EXISTS products 
     (
         id BIGSERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -28,47 +33,38 @@ products = """
     )
 """
 
+
 menu_products = """
-    CREATE TABLE IF NOT EXISTS menu_products
+CREATE TABLE IF NOT EXISTS menu_products 
     (
         id BIGSERIAL PRIMARY KEY,
-        date_of_menu DATE DEFAULT CURRENT_DATE
+        date_of_menu DATE DEFAULT CURRENT_DATE,
         product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
         amount BIGINT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 """
 
-durations = """
-    CREATE TABLE IF NOT EXISTS durations
-    (
-        id BIGSERIAL PRIMARY_KEY,
-        from_time 
-        to_time
-    )
+orders = """
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    menu_product_id BIGINT REFERENCES menu_products(id),
+    amount BIGINT NOT NULL,
+    duration_id BIGINT REFERENCES durations(id),
+    status BOOLEAN DEFAULT TRUE,      
+    order_type BOOLEAN NOT NULL,      
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
 """
 
-_current_user = None
-
-
-def set_current_user(user: dict) -> dict | None:
-    """
-    Save logged in user
-    """
-    global _current_user
-    _current_user = user
-
-
-def get_current_user() -> dict | None:
-    """
-    Get current logged in user
-    """
-    return _current_user
-
-
-def logout() -> None:
-    """
-    Logout current user
-    """
-    global _current_user
-    _current_user = None
+durations = """
+CREATE TABLE IF NOT EXISTS durations (
+    id BIGSERIAL PRIMARY KEY,
+    from_time TIMESTAMP NOT NULL,
+    to_time TIMESTAMP NOT NULL,
+    seats INT DEFAULT 20,
+    status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+"""

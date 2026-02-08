@@ -6,7 +6,7 @@ from core.db_settings import execute_query
 logger = logging.getLogger(__name__)
 
 
-async def register() -> bool:
+def register() -> bool:
     """
     Register new users
     :return: True if success else False
@@ -27,31 +27,48 @@ async def register() -> bool:
         return False
 
 
-async def login() -> str | None:
-    """
-    Login by email
-    :return: True if success else False
-    """
+def login() -> bool:
     username: str = input("Username: ")
     password: str = input("Password: ")
-    query: str = "SELECT * FROM users WHERE username=%s AND password=%s"
-    params: tuple[str, str] = (username, password,)
 
-    if execute_query(query=query, params=params, fetch="one"):
-        query2 = "UPDATE users SET is_login=True WHERE username = %s"
-        params2 = (username,)
-        execute_query(query=query2, params=params2)
-        return "user"
-    return None
+    user = execute_query(
+        """
+        SELECT id, username, is_admin
+        FROM users
+        WHERE username=%s AND password=%s
+        """,
+        (username, password),
+        fetch="one"
+    )
+
+    if not user:
+        logger.warning("Login failed")
+        return False
+
+    execute_query(
+        "UPDATE users SET active=TRUE WHERE id=%s",
+        (user["id"],)
+    )
+
+    logger.info(
+        "User logged in | admin=%s",
+        user["is_admin"]
+    )
+
+    return True
 
 
-def get_active_user() -> DictRow | None | list[tuple[Any, ...]]:
-    """
-    Get active user that is login currently
-    :return:
-    """
-    query = "SELECT * FROM users WHERE is_login=TRUE"
-    return execute_query(query=query, fetch="one")
+
+def get_active_user() -> dict | None:
+    return execute_query(
+        """
+        SELECT id, username, is_admin
+        FROM users
+        WHERE active=TRUE
+        """,
+        fetch="one"
+    )
+
 
 
 def logout_all() -> None:
