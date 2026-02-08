@@ -160,9 +160,7 @@ def show_my_orders() -> list[DictRow] | None:
     user = get_active_user()
     if not user:
         return None
-
-    return execute_query(
-        """
+    query = """
         SELECT 
             o.id,
             p.title,
@@ -178,14 +176,12 @@ def show_my_orders() -> list[DictRow] | None:
         LEFT JOIN durations d ON d.id = o.duration_id
         WHERE o.user_id = %s
         ORDER BY o.created_at DESC
-        """,
-        (user["id"],),
-        fetch="all"
-    )
+        """
+    params = (user["id"],)
+    return execute_query(query=query, params=params, fetch="all")
 
 def show_all_orders() -> None:
-    orders = execute_query(
-        """ 
+    query = """ 
         SELECT o.id,
                u.username,
                o.amount,
@@ -198,32 +194,26 @@ def show_all_orders() -> None:
         JOIN users u ON u.id = o.user_id
         LEFT JOIN durations d ON d.id = o.duration_id
         ORDER BY o.created_at DESC
-        """,
-        fetch="all"
-    )
+        """
+    orders = execute_query(query=query, fetch="all")
 
     logger.info("Fetched all orders")
     print(orders)
 
 def change_order_status() -> None:
     order_id: int = int(input("Order ID: "))
-
-    order = execute_query(
-        "SELECT status FROM orders WHERE id=%s",
-        (order_id,),
-        fetch="one"
-    )
+    query="SELECT status FROM orders WHERE id=%s"
+    params = (order_id,)
+    order = execute_query(query=query,params=params, fetch="one")
 
     if not order:
         logger.warning("Order not found")
         return
 
     new_status: bool = not order["status"]
-
-    execute_query(
-        "UPDATE orders SET status=%s WHERE id=%s",
-        (new_status, order_id)
-    )
+    query = "UPDATE orders SET status=%s WHERE id=%s"
+    params = (new_status, order_id,)
+    execute_query(query=query,params=params)
 
     logger.info("Order status changed")
 
@@ -234,20 +224,15 @@ def cancel_order() -> None:
         return
 
     order_id: int = int(input("Order ID: "))
-
-    order = execute_query(
-        "SELECT * FROM orders WHERE id=%s AND user_id=%s",
-        (order_id, user["id"]),
-        fetch="one"
-    )
+    query = "SELECT * FROM orders WHERE id=%s AND user_id=%s"
+    params = (order_id, user["id"],)
+    order = execute_query(query=query,params=params, fetch="one")
 
     if not order or not order["status"]:
         logger.warning("Invalid cancel attempt")
         return
-
-    execute_query(
-        "UPDATE orders SET status=FALSE WHERE id=%s",
-        (order_id,)
-    )
+    query = "UPDATE orders SET status=FALSE WHERE id=%s"
+    params = (order_id,)
+    execute_query(query=query,params=params)
 
     logger.info("Order cancelled successfully")

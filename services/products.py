@@ -7,11 +7,8 @@ logger = logging.getLogger(__name__)
 
 def show_all_products() -> list[DictRow] | None:
     logger.info("Fetching all products")
-
-    products = execute_query(
-        "SELECT * FROM products ORDER BY id",
-        fetch="all"
-    )
+    query = "SELECT * FROM products ORDER BY id"
+    products = execute_query(query=query, fetch="all")
 
     if not products:
         logger.warning("No products found")
@@ -32,4 +29,6 @@ def add_product():
 
 def delete_product() -> DictRow | None | list[tuple[Any, ...]] | bool:
     prod_id = int(input("Product ID: "))
-    execute_query("DELETE FROM products WHERE id=%s", (prod_id,))
+    query = "DELETE FROM products WHERE id=%s"
+    params = (prod_id,)
+    execute_query(query=query,params=params)
