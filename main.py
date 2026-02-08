@@ -1,8 +1,9 @@
+import asyncio
 import logging
 
 from auth.login import login, register, logout_all
 from utils.menus import auth_menu, admin_menu, user_menu
-
+from core.models import *
 from services.products import *
 from services.menu_products import *
 from services.orders import *
@@ -11,106 +12,163 @@ from services.orders import close_expired_durations
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
+async def main() -> None:
     logger.info("Application started")
 
     logout_all()
 
-    return auth_flow()
+    return await auth_flow()
 
-def auth_flow() -> None:
+async def auth_flow() -> None:
     print(auth_menu)
     choice: str = input("Choice: ")
 
     if choice == "1":
-        if login():
-            return after_login()
-        return auth_flow()
+        role = await login()
+
+        if role == "admin":
+            return await admin_panel()
+
+        if role == "user":
+            return await user_panel()
+
+        return await auth_flow()
 
     if choice == "2":
-        register()
-        return auth_flow()
+        if register():
+            print("account successfully registered")
+        return await auth_flow()
 
+    logger.info("Application exit")
     return
 
 
-def after_login() -> None:
+
+async def after_login() -> None:
     user = get_active_user()
 
     if not user:
-        return auth_flow()
+        return await auth_flow()
 
     if user["is_admin"]:
         logger.info("Admin panel auto-opened")
-        return admin_panel()
+        return await admin_panel()
 
     logger.info("User panel auto-opened")
-    return user_panel()
+    return await user_panel()
 
 
-def admin_panel() -> None:
+async def admin_panel() -> None:
     print(admin_menu)
     choice: str = input("Choice: ")
 
     if choice == "1":
-        print(show_all_products())
-        return admin_panel()
+        products = show_all_products()
+
+        if not products:
+            print("No products found")
+        else:
+            for p in products:
+                print(f"{p['id']}. {p['title']} - {p['price']}")
+
+        return await admin_panel()
 
     if choice == "2":
         add_product()
-        return admin_panel()
+        return await admin_panel()
 
     if choice == "3":
         delete_product()
-        return admin_panel()
+        return await admin_panel()
 
     if choice == "4":
         print(show_today_menu())
-        return admin_panel()
+        return await admin_panel()
 
     if choice == "5":
         add_product_to_menu()
-        return admin_panel()
+        return await admin_panel()
 
     if choice == "6":
         remove_product_from_menu()
-        return admin_panel()
+        return await admin_panel()
 
     if choice == "7":
-        print(show_all_orders())
-        return admin_panel()
+        orders = show_all_orders()
+
+        if not orders:
+            print("No orders")
+        else:
+            for o in orders:
+                print(
+                    f"{o['id']} | {o['username']} | {o['title']} | "
+                    f"{o['amount']} | active={o['status']}"
+                )
+
+        return await admin_panel()
+
 
     if choice == "8":
         change_order_status()
-        return admin_panel()
+        return await admin_panel()
 
     logger.info("Exit admin panel")
-    return auth_flow()
+    return await auth_flow()
 
-def user_panel() -> None:
+async def user_panel() -> None:
     close_expired_durations()
 
     print(user_menu)
     choice: str = input("Choice: ")
 
     if choice == "1":
-        print(show_today_menu())
-        return user_panel()
+        menu = show_today_menu()
+
+        if not menu:
+            print("Today's menu is empty")
+        else:
+            for m in menu:
+                print(f"{m['id']}. {m['title']} - {m['price']} ({m['amount']})")
+
+        return await user_panel()
 
     if choice == "2":
         make_order()
-        return user_panel()
+        return await user_panel()
 
     if choice == "3":
-        print(show_my_orders())
-        return user_panel()
+        orders = show_my_orders()
+
+        if not orders:
+            print("You have no orders")
+            return user_panel()
+
+        for o in orders:
+            order_type = "Dine in" if o["order_type"] else "Take away"
+            status = "Active" if o["status"] else "Finished"
+
+            print(
+                f"{o['id']}. {o['title']} | {o['amount']} | "
+                f"{order_type} | {status} | "
+                f"{o['created_at']:%Y-%m-%d %H:%M}"
+            )
+
+        return await user_panel()
+
 
     if choice == "4":
         cancel_order()
-        return user_panel()
+        return await user_panel()
 
     logger.info("Exit user panel")
-    return auth_flow()
+    return await auth_flow()
+
 
 if __name__=="__main__":
-    main()
+    # execute_query(users)
+    # execute_query(products)
+    # execute_query(menu_products)
+    # execute_query(orders)
+    # execute_query(durations)
+
+    asyncio.run(main())

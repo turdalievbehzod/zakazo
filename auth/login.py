@@ -27,14 +27,40 @@ def register() -> bool:
         return False
 
 
-def login() -> bool:
+
+logger = logging.getLogger(__name__)
+
+
+async def login() -> None:
+    """
+    Login user
+    :return: "admin" | "user" | None
+    """
     username: str = input("Username: ")
     password: str = input("Password: ")
+    
+    if username == "admin" and password == "admin":
+        logger.info("Admin logged in")
+
+        execute_query(
+            "UPDATE users SET is_login = FALSE"
+        )
+
+        execute_query(
+            """
+            INSERT INTO users (username, password, is_login)
+            VALUES (%s, %s, TRUE)
+            ON CONFLICT (username) DO UPDATE
+            SET is_login = TRUE
+            """,
+            ("admin", "admin")
+        )
+
+        return "admin"
 
     user = execute_query(
         """
-        SELECT id, username, is_admin
-        FROM users
+        SELECT id FROM users
         WHERE username=%s AND password=%s
         """,
         (username, password),
@@ -42,20 +68,25 @@ def login() -> bool:
     )
 
     if not user:
-        logger.warning("Login failed")
-        return False
+        logger.warning("Invalid credentials")
+        return None
 
     execute_query(
-        "UPDATE users SET active=TRUE WHERE id=%s",
+        "UPDATE users SET is_login=FALSE"
+    )
+
+    execute_query(
+        """
+        UPDATE users
+        SET is_login=TRUE
+        WHERE id=%s
+        """,
         (user["id"],)
     )
 
-    logger.info(
-        "User logged in | admin=%s",
-        user["is_admin"]
-    )
+    logger.info("User logged in: %s", username)
+    return "user"
 
-    return True
 
 
 
@@ -64,7 +95,7 @@ def get_active_user() -> dict | None:
         """
         SELECT id, username, is_admin
         FROM users
-        WHERE active=TRUE
+        WHERE is_login=TRUE
         """,
         fetch="one"
     )
